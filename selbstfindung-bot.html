@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Der Archivar — Finde heraus, was zu dir passt</title>
+<meta name="description" content="Schreib mit dem Archivar-Bot und finde heraus, was zu dir passen könnte. Deutsch, English, Українська." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --kraft:#cdb98a;
+    --card:#f6efd9;
+    --card-line:#d9cca3;
+    --ink:#2c2415;
+    --ink-soft:#5b4f37;
+    --teal:#3c6359;
+    --stamp:#a23a31;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at 20% 0%, rgba(255,255,255,0.08), transparent 60%),
+      var(--kraft);
+    color:var(--ink);
+    font-family:'Libre Baskerville', serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:640px; position:relative; }
+
+  header{ text-align:center; margin-bottom:18px; padding:0 50px; }
+  .eyebrow{
+    font-family:'Courier Prime', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  h1{
+    font-family:'Special Elite', monospace;
+    font-size:1.7rem;
+    margin:0.2em 0 0.1em;
+  }
+  .lede{ color:var(--ink-soft); font-size:0.95rem; max-width:460px; margin:0 auto; }
+
+  /* ---------- globe / language switcher ---------- */
+  .lang-switch{ position:absolute; top:0; right:6px; }
+  .globe-btn{
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1.5px solid var(--ink);
+    background:var(--card);
+    cursor:pointer;
+    display:grid; place-items:center;
+    color:var(--ink);
+    padding:0;
+  }
+  .globe-btn:hover{ background:#fffdf6; }
+  .globe-btn svg{ width:20px; height:20px; }
+  .lang-menu{
+    position:absolute;
+    top:44px; right:0;
+    background:#fffdf6;
+    border:1px solid var(--card-line);
+    border-radius:var(--radius);
+    box-shadow:0 10px 22px rgba(30,22,8,0.22);
+    min-width:168px;
+    overflow:hidden;
+    z-index:20;
+  }
+  .lang-menu.hidden{ display:none; }
+  .lang-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:10px 13px;
+    background:none;
+    border:none;
+    border-bottom:1px solid var(--card-line);
+    font-family:'Courier Prime', monospace;
+    font-size:0.82rem;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .lang-menu button:last-child{ border-bottom:none; }
+  .lang-menu button:hover{ background:#f0e8cf; }
+  .lang-menu button[aria-current="true"]{ color:var(--teal); font-weight:bold; }
+
+  /* ---------- drawer / card shell ---------- */
+  .drawer{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:var(--radius);
+    box-shadow: 0 14px 30px rgba(30,22,8,0.22), inset 0 0 0 1px rgba(255,255,255,0.3);
+    padding:26px 22px 18px;
+    position:relative;
+    margin-top:22px;
+  }
+  .drawer::before{
+    content:"";
+    position:absolute;
+    top:14px; left:14px; right:14px;
+    height:1px;
+    background:repeating-linear-gradient(90deg, var(--card-line) 0 8px, transparent 8px 16px);
+    opacity:0.9;
+  }
+  .tag-line{
+    font-family:'Courier Prime', monospace;
+    font-size:0.7rem;
+    color:var(--teal);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  /* ---------- chat log ---------- */
+  #log{ display:flex; flex-direction:column; gap:14px; min-height:60px; max-height:54vh; overflow-y:auto; padding-right:2px; }
+
+  .msg{ display:flex; gap:10px; max-width:92%; }
+  .msg.bot{ align-self:flex-start; }
+  .msg.user{ align-self:flex-end; flex-direction:row-reverse; text-align:right; }
+
+  .avatar{
+    flex:none;
+    width:28px; height:28px;
+    border-radius:50%;
+    border:1.5px solid var(--ink);
+    display:grid; place-items:center;
+    font-family:'Special Elite', monospace;
+    font-size:0.8rem;
+    background:var(--card);
+  }
+  .msg.user .avatar{ border-color:var(--teal); color:var(--teal); }
+
+  .bubble{
+    background:#fffdf6;
+    border:1px solid var(--card-line);
+    border-radius:2px;
+    padding:10px 13px;
+    font-size:0.97rem;
+    line-height:1.45;
+    white-space:pre-line;
+  }
+  .msg.user .bubble{ background:#eef3f0; border-color:#cfdbd4; }
+
+  .typing-dots{ display:inline-flex; gap:4px; padding:4px 2px; }
+  .typing-dots span{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--ink-soft);
+    opacity:0.5;
+    animation:blink 1.1s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2){ animation-delay:0.18s; }
+  .typing-dots span:nth-child(3){ animation-delay:0.36s; }
+  @keyframes blink{ 0%,80%,100%{ opacity:0.25; transform:translateY(0);} 40%{ opacity:0.9; transform:translateY(-2px);} }
+
+  .progress{
+    font-family:'Courier Prime', monospace;
+    font-size:0.72rem;
+    color:var(--ink-soft);
+    text-align:right;
+    margin:8px 0 2px;
+  }
+
+  /* ---------- input row ---------- */
+  #chat-form{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+    border-top:1px dashed var(--card-line);
+    padding-top:14px;
+  }
+  #chat-input{
+    flex:1;
+    font-family:'Libre Baskerville', serif;
+    font-size:0.95rem;
+    padding:10px 12px;
+    border:1px solid var(--ink-soft);
+    border-radius:2px;
+    background:#fffdf6;
+    color:var(--ink);
+  }
+  #chat-input:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
+  #chat-send{
+    font-family:'Courier Prime', monospace;
+    font-size:0.82rem;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    padding:0 16px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--card);
+    cursor:pointer;
+    border-radius:2px;
+  }
+  #chat-send:hover{ background:var(--teal); border-color:var(--teal); }
+  #chat-send:disabled{ opacity:0.45; cursor:default; }
+
+  .below-input{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:10px;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .hint{ font-family:'Courier Prime', monospace; font-size:0.7rem; color:var(--ink-soft); }
+  .restart-btn{
+    font-family:'Courier Prime', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    background:none;
+    border:1px solid var(--ink-soft);
+    color:var(--ink-soft);
+    padding:6px 10px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .restart-btn:hover{ border-color:var(--ink); color:var(--ink); }
+
+  /* ---------- result card ---------- */
+  .result-card{
+    position:relative;
+    border:1px solid var(--card-line);
+    background:#fffdf6;
+    padding:22px 18px 18px;
+    margin-left:38px;
+  }
+  .call-number{ font-family:'Courier Prime', monospace; font-size:0.72rem; color:var(--ink-soft); letter-spacing:0.05em; }
+  .hobby-name{ font-family:'Special Elite', monospace; font-size:1.25rem; margin:0.25em 0 0.35em; }
+  .hobby-desc{ font-size:0.95rem; margin-bottom:0.3em; }
+  .stamp{
+    position:absolute; top:12px; right:14px;
+    border:3px solid var(--stamp);
+    color:var(--stamp);
+    font-family:'Special Elite', monospace;
+    font-size:0.7rem;
+    letter-spacing:0.05em;
+    padding:5px 8px;
+    transform:rotate(7deg);
+    border-radius:3px;
+    opacity:0.88;
+    text-transform:uppercase;
+    text-align:center;
+    line-height:1.2;
+  }
+  .also-title{ font-family:'Courier Prime', monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--teal); margin:16px 0 8px; }
+  .also-list{ display:flex; flex-direction:column; gap:6px; }
+  .also-item{ border:1px solid var(--card-line); padding:7px 10px; font-size:0.88rem; }
+  .also-item b{ font-family:'Special Elite', monospace; font-weight:400; font-size:0.82rem; display:block; margin-bottom:2px; }
+
+  footer{
+    text-align:center;
+    margin-top:20px;
+    font-family:'Courier Prime', monospace;
+    font-size:0.68rem;
+    color:var(--ink-soft);
+  }
+
+  @media (max-width:480px){
+    header{ padding:0 44px; }
+    .result-card{ margin-left:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="lang-switch">
+      <button class="globe-btn" id="globe-btn" aria-haspopup="true" aria-expanded="false" aria-label="Sprache wählen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9.5"/>
+          <ellipse cx="12" cy="12" rx="4.2" ry="9.5"/>
+          <line x1="2.5" y1="12" x2="21.5" y2="12"/>
+          <path d="M4.3 6.8h15.4M4.3 17.2h15.4"/>
+        </svg>
+      </button>
+      <div class="lang-menu hidden" id="lang-menu" role="menu">
+        <button type="button" data-lang="de" role="menuitem">Deutsch</button>
+        <button type="button" data-lang="en" role="menuitem">English</button>
+        <button type="button" data-lang="uk" role="menuitem">Українська</button>
+      </div>
+    </div>
+
+    <header>
+      <p class="eyebrow" id="t-eyebrow">Selbstfindung · Gesprächskartei · mv </p>
+      <h1 id="t-title">Der Archivar</h1>
+      <p class="lede" id="t-lede">Schreib mit dem Archivar. Er stellt dir ein paar Fragen — einfach drauflosschreiben, es gibt kein Richtig oder Falsch.</p>
+    </header>
+
+    <div class="drawer">
+      <div class="tag-line">
+        <span id="t-tagleft">GESPRÄCHSKARTE</span>
+        <span id="t-tagright">№ 014</span>
+      </div>
+
+      <div id="log"></div>
+      <p class="progress" id="progress"></p>
+
+      <form id="chat-form">
+        <input type="text" id="chat-input" autocomplete="off" />
+        <button type="submit" id="chat-send">Senden</button>
+      </form>
+      <div class="below-input">
+        <span class="hint" id="t-hint"></span>
+        <button type="button" class="restart-btn" id="restart-btn">Neu beginnen</button>
+      </div>
+    </div>
+
+    <footer id="t-footer">die Unterhaltung läuft nur lokal im Browser · es wird nichts gesendet</footer>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================================
+     SPRACHEN / LANGUAGES / МОВИ
+     ===================================================================== */
+  const CATS = ["kreativ","sozial","aktiv","analytisch","natur","hilfsbereit"];
+
+  const LANG = {
+    de: {
+      eyebrow: "Selbstfindung · Gesprächskartei · mv",
+      title: "Der Archivar",
+      lede: "Schreib mit dem Archivar. Er stellt dir ein paar Fragen — einfach drauflosschreiben, es gibt kein Richtig oder Falsch.",
+      tagLeft: "GESPRÄCHSKARTE",
+      placeholder: "Schreib etwas …",
+      send: "Senden",
+      restart: "Neu beginnen",
+      hint: "Du kannst danach einfach weiterschreiben.",
+      footer: "die Unterhaltung läuft nur lokal im Browser · es wird nichts gesendet",
+      globeLabel: "Sprache wählen",
+      switchMsg: "Wir sprechen jetzt Deutsch.",
+      intro: "Hallo! Ich bin der Archivar. Ich stelle dir ein paar Fragen — schreib einfach, was dir einfällt. Am Ende zeige ich dir, was zu dir passen könnte.",
+      progressLabel: (i, n) => "Frage " + i + " von " + n,
+      questions: [
+        "Wenn du einen ganzen Tag ohne Pläne hättest — was würdest du am liebsten tun?",
+        "Wobei vergisst du leicht die Zeit?",
+        "Stell dir vor, du hilfst jemandem. Wie sieht das aus?",
+        "Was wolltest du als Kind unbedingt ausprobieren oder werden?",
+        "Wie schaltest du am liebsten ab — eher allein oder mit anderen?",
+      ],
+      ackByCategory: {
+        kreativ: "Klingt nach einem kreativen Kopf.",
+        sozial: "Klingt, als wärst du gern mit anderen unterwegs.",
+        aktiv: "Klingt nach jemandem, der sich gern bewegt.",
+        analytisch: "Klingt, als würdest du gern knobeln und durchdenken.",
+        natur: "Klingt nach einer Verbindung zur Natur.",
+        hilfsbereit: "Klingt, als wäre dir wichtig, für andere da zu sein.",
+      },
+      ackFallback: ["Verstehe.", "Danke, das hilft mir weiter.", "Gut zu wissen.", "Notiert.", "Interessant."],
+      resultIntro: "Basierend auf dem, was du erzählt hast, könnte das zu dir passen:",
+      resultIntroFallback: "Ich konnte noch kein klares Muster erkennen — das ist völlig okay. Vielleicht magst du einfach mal etwas Neues ausprobieren:",
+      alsoTitle: "Das könnte auch passen",
+      stampText: "Treffer\ngefunden",
+      callNumberPrefix: "RICHTUNG NR. ",
+      categoryNames: { kreativ:"Kreativität", sozial:"Gemeinschaft", aktiv:"Bewegung", analytisch:"Tüfteln & Logik", natur:"Natur", hilfsbereit:"Für andere da sein" },
+      suggestions: {
+        kreativ: [
+          { name:"Skizzieren & Zeichnen", desc:"Ein Heft und ein Stift reichen, um eigene Bilder zu entwickeln." },
+          { name:"Musik machen", desc:"Ein Instrument lernen oder Beats bauen — Ausdruck ganz ohne Worte." },
+        ],
+        sozial: [
+          { name:"Theater oder Improv", desc:"Gemeinsam Geschichten erfinden und ausprobieren, wer man sein könnte." },
+          { name:"Ehrenamt im Verein", desc:"Mit anderen an etwas arbeiten, das größer ist als man selbst." },
+        ],
+        aktiv: [
+          { name:"Klettern oder Wandern", desc:"Der Kopf wird leer, wenn der Körper gefordert ist." },
+          { name:"Mannschaftssport", desc:"Bewegung, die nur im Team richtig Spaß macht." },
+        ],
+        analytisch: [
+          { name:"Programmieren", desc:"Ein Problem in kleine, lösbare Teile zerlegen." },
+          { name:"Schach oder Strategiespiele", desc:"Vorausdenken, bis ein Plan aufgeht." },
+        ],
+        natur: [
+          { name:"Garten oder Pflanzen", desc:"Etwas wachsen sehen, das man selbst angefangen hat." },
+          { name:"Wandern in der Natur", desc:"Stille, die man nicht erklären muss." },
+        ],
+        hilfsbereit: [
+          { name:"Nachhilfe geben", desc:"Erklären, bis es bei jemand anderem 'klick' macht." },
+          { name:"Tierschutz oder Pflege", desc:"Für jemanden da sein, der sich nicht allein helfen kann." },
+        ],
+      },
+    },
+
+    en: {
+      eyebrow: "Self-discovery · conversation file · mv",
+      title: "The Archivist",
+      lede: "Chat with the Archivist. They'll ask you a few questions — just write what comes to mind, there's no right or wrong.",
+      tagLeft: "CONVERSATION CARD",
+      placeholder: "Type something …",
+      send: "Send",
+      restart: "Start over",
+      hint: "After that you can just keep chatting.",
+      footer: "this conversation only runs locally in your browser · nothing is sent anywhere",
+      globeLabel: "Choose language",
+      switchMsg: "We'll continue in English now.",
+      intro: "Hi! I'm the Archivist. I'll ask you a few questions — just write whatever comes to mind. At the end I'll show you what might fit you.",
+      progressLabel: (i, n) => "Question " + i + " of " + n,
+      questions: [
+        "If you had a whole day with no plans, what would you most want to do?",
+        "What makes you lose track of time?",
+        "Imagine helping someone. What does that look like?",
+        "What did you really want to try or become as a kid?",
+        "How do you like to unwind — alone or with others?",
+      ],
+      ackByCategory: {
+        kreativ: "Sounds like a creative mind.",
+        sozial: "Sounds like you enjoy being around others.",
+        aktiv: "Sounds like someone who likes to move.",
+        analytisch: "Sounds like you enjoy figuring things out.",
+        natur: "Sounds like a connection to nature.",
+        hilfsbereit: "Sounds like being there for others matters to you.",
+      },
+      ackFallback: ["I see.", "Thanks, that helps.", "Good to know.", "Noted.", "Interesting."],
+      resultIntro: "Based on what you've shared, this could be a good fit:",
+      resultIntroFallback: "I couldn't quite spot a clear pattern yet — that's completely fine. Maybe try something new:",
+      alsoTitle: "This could fit too",
+      stampText: "match\nfound",
+      callNumberPrefix: "DIRECTION NO. ",
+      categoryNames: { kreativ:"Creativity", sozial:"Community", aktiv:"Movement", analytisch:"Tinkering & logic", natur:"Nature", hilfsbereit:"Being there for others" },
+      suggestions: {
+        kreativ: [
+          { name:"Sketching & drawing", desc:"A notebook and a pencil are enough to develop your own images." },
+          { name:"Making music", desc:"Learning an instrument or producing beats — expression without words." },
+        ],
+        sozial: [
+          { name:"Theatre or improv", desc:"Inventing stories together and trying out who you could be." },
+          { name:"Volunteering with a group", desc:"Working with others on something bigger than yourself." },
+        ],
+        aktiv: [
+          { name:"Climbing or hiking", desc:"Your mind clears when your body is challenged." },
+          { name:"Team sports", desc:"Movement that's only really fun together." },
+        ],
+        analytisch: [
+          { name:"Coding", desc:"Breaking a problem into small, solvable pieces." },
+          { name:"Chess or strategy games", desc:"Thinking ahead until a plan comes together." },
+        ],
+        natur: [
+          { name:"Gardening or plants", desc:"Watching something grow that you started yourself." },
+          { name:"Hiking in nature", desc:"A quiet that doesn't need explaining." },
+        ],
+        hilfsbereit: [
+          { name:"Tutoring others", desc:"Explaining until something finally clicks for someone else." },
+          { name:"Animal care or caregiving", desc:"Being there for someone who can't manage alone." },
+        ],
+      },
+    },
+
+    uk: {
+      eyebrow: "Самопізнання · картка розмови · mv",
+      title: "Архіваріус",
+      lede: "Пиши з Архіваріусом. Він поставить кілька запитань — просто пиши, що спадає на думку, тут немає правильно чи неправильно.",
+      tagLeft: "КАРТКА РОЗМОВИ",
+      placeholder: "Напиши щось …",
+      send: "Надіслати",
+      restart: "Почати спочатку",
+      hint: "Далі можеш просто писати, що хочеш.",
+      footer: "розмова працює лише локально в браузері · нічого нікуди не надсилається",
+      globeLabel: "Обрати мову",
+      switchMsg: "Тепер спілкуємось українською.",
+      intro: "Привіт! Я Архіваріус. Поставлю кілька запитань — просто пиши, що спадає на думку. Наприкінці покажу, що може тобі личити.",
+      progressLabel: (i, n) => "Питання " + i + " з " + n,
+      questions: [
+        "Якби в тебе був цілий вільний день без жодних планів — що б ти найбільше хотів(ла) робити?",
+        "Через що ти забуваєш про час?",
+        "Уяви, що ти комусь допомагаєш. Як це виглядає?",
+        "Ким ти дуже хотів(ла) стати або що спробувати в дитинстві?",
+        "Як тобі найприємніше відпочивати — наодинці чи з іншими?",
+      ],
+      ackByCategory: {
+        kreativ: "Схоже на творчу натуру.",
+        sozial: "Схоже, тобі подобається бути серед людей.",
+        aktiv: "Схоже, тобі подобається рухатися.",
+        analytisch: "Схоже, тобі подобається розбиратися й аналізувати.",
+        natur: "Схоже на зв'язок із природою.",
+        hilfsbereit: "Схоже, тобі важливо бути поруч з іншими.",
+      },
+      ackFallback: ["Зрозуміло.", "Дякую, це допомагає.", "Добре знати.", "Занотовано.", "Цікаво."],
+      resultIntro: "Виходячи з того, що ти розповів(ла), тобі може личити:",
+      resultIntroFallback: "Я ще не побачив(ла) чіткого патерну — це абсолютно нормально. Може, спробуй щось нове:",
+      alsoTitle: "Це теж може підійти",
+      stampText: "збіг\nзнайдено",
+      callNumberPrefix: "НАПРЯМ № ",
+      categoryNames: { kreativ:"Творчість", sozial:"Спільнота", aktiv:"Рух", analytisch:"Логіка та техніка", natur:"Природа", hilfsbereit:"Турбота про інших" },
+      suggestions: {
+        kreativ: [
+          { name:"Скетчинг і малювання", desc:"Зошита й олівця достатньо, щоб створювати власні образи." },
+          { name:"Створення музики", desc:"Інструмент або біти — самовираження без слів." },
+        ],
+        sozial: [
+          { name:"Театр або імпровізація", desc:"Вигадувати історії разом і пробувати, ким ти міг(ла) би бути." },
+          { name:"Волонтерство в команді", desc:"Працювати з іншими над чимось більшим за себе." },
+        ],
+        aktiv: [
+          { name:"Скелелазіння або походи", desc:"Голова звільняється, коли працює тіло." },
+          { name:"Командний спорт", desc:"Рух, який по-справжньому захопливий лише разом з іншими." },
+        ],
+        analytisch: [
+          { name:"Програмування", desc:"Розкладати проблему на маленькі, розв'язувані частини." },
+          { name:"Шахи або стратегічні ігри", desc:"Думати наперед, поки план не складеться." },
+        ],
+        natur: [
+          { name:"Сад або рослини", desc:"Бачити, як росте те, що ти сам(а) почав(ла)." },
+          { name:"Походи на природі", desc:"Тиша, яку не треба пояснювати." },
+        ],
+        hilfsbereit: [
+          { name:"Репетиторство", desc:"Пояснювати, поки в когось іншого нарешті не складеться розуміння." },
+          { name:"Догляд за тваринами чи людьми", desc:"Бути поруч із тим, хто не може впоратися сам(а)." },
+        ],
+      },
+    },
+  };
+
+  // Schlüsselwörter sind sprachübergreifend zusammengeführt, damit die
+  // Erkennung unabhängig von der gewählten Oberflächensprache funktioniert.
+  const KEYWORDS = {
+    kreativ: ["zeichn","male","kunst","kreativ","musik","gitarre","klavier","schreib","gedicht","design","bastel","fotograf","art","draw","paint","creativ","creative","music","guitar","write","poem","малю","малюва","мистецт","творч","музик","пишу","вірш","дизайн","фото"],
+    sozial: ["freunde","leute","gruppe","team","zusammen","gesellsch","party","friends","people","group","together","social","party","друз","люди","групa","разом","команд","спілку","вечірк"],
+    aktiv: ["sport","laufen","bewegung","fitness","klettern","fußball","tanzen","aktiv","trainin","run","move","climb","football","dance","active","gym","спорт","біга","рух","активн","танц","футбол","трену"],
+    analytisch: ["programm","code","logik","mathe","technik","computer","analys","strateg","schach","rätsel","program","logic","math","tech","analy","chess","puzzle","програм","логік","матем","техніка","аналіз","шахи","коду"],
+    natur: ["natur","garten","pflanz","wald","tier","outdoor","wandern","berge","nature","garden","plant","forest","animal","hike","mountain","природ","сад","росл","ліс","тварин","похід","гори"],
+    hilfsbereit: ["helfen","hilfe","unterst","pflege","ehrenamt","kinder","zuhören","help","support","care","volunteer","listen","kids","допом","підтрим","догляд","волонтер","діти","слуха"],
+  };
+
+  function scanKeywords(text){
+    const lower = text.toLowerCase();
+    const hits = {};
+    CATS.forEach((c) => { hits[c] = 0; });
+    CATS.forEach((cat) => {
+      KEYWORDS[cat].forEach((kw) => { if (lower.indexOf(kw) !== -1) hits[cat] += 1; });
+    });
+    return hits;
+  }
+  function topCategory(hits){
+    let best = null, bestVal = 0;
+    CATS.forEach((c) => { if (hits[c] > bestVal) { bestVal = hits[c]; best = c; } });
+    return best;
+  }
+  function randomFrom(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+  /* =====================================================================
+     STATE
+     ===================================================================== */
+  let currentLang = "de";
+  let phase = "intro"; // intro -> asking -> summary -> freechat
+  let step = 0;
+  let busy = false;
+  const scores = {}; CATS.forEach((c) => { scores[c] = 0; });
+
+  const logEl = document.getElementById("log");
+  const progressEl = document.getElementById("progress");
+  const formEl = document.getElementById("chat-form");
+  const inputEl = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("chat-send");
+  const restartBtn = document.getElementById("restart-btn");
+  const globeBtn = document.getElementById("globe-btn");
+  const langMenu = document.getElementById("lang-menu");
+
+  const t = () => LANG[currentLang];
+
+  /* =====================================================================
+     UI HELPERS
+     ===================================================================== */
+  function addMessage(text, who){
+    const row = document.createElement("div");
+    row.className = "msg " + who;
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = who === "bot" ? "A" : (currentLang === "de" ? "D" : currentLang === "uk" ? "T" : "Y");
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+    return row;
+  }
+
+  function showTyping(){
+    const row = document.createElement("div");
+    row.className = "msg bot";
+    row.innerHTML =
+      '<div class="avatar">A</div><div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+    return row;
+  }
+
+  function botSay(text){
+    return new Promise((resolve) => {
+      const typingRow = showTyping();
+      const delay = 480 + Math.random() * 420;
+      setTimeout(() => {
+        typingRow.remove();
+        addMessage(text, "bot");
+        resolve();
+      }, delay);
+    });
+  }
+
+  function updateProgress(){
+    if (phase === "asking") {
+      progressEl.textContent = t().progressLabel(step + 1, t().questions.length);
+    } else {
+      progressEl.textContent = "";
+    }
+  }
+
+  function setBusy(v){
+    busy = v;
+    inputEl.disabled = v;
+    sendBtn.disabled = v;
+  }
+
+  function applyStaticTexts(){
+    document.documentElement.lang = currentLang;
+    document.getElementById("t-eyebrow").textContent = t().eyebrow;
+    document.getElementById("t-title").textContent = t().title;
+    document.getElementById("t-lede").textContent = t().lede;
+    document.getElementById("t-tagleft").textContent = t().tagLeft;
+    document.getElementById("t-hint").textContent = phase === "freechat" ? t().hint : "";
+    document.getElementById("t-footer").textContent = t().footer;
+    document.getElementById("restart-btn").textContent = t().restart;
+    inputEl.placeholder = t().placeholder;
+    sendBtn.textContent = t().send;
+    globeBtn.setAttribute("aria-label", t().globeLabel);
+    langMenu.querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-current", b.dataset.lang === currentLang ? "true" : "false");
+    });
+    updateProgress();
+  }
+
+  /* =====================================================================
+     CONVERSATION FLOW
+     ===================================================================== */
+  async function askCurrentQuestion(){
+    updateProgress();
+    await botSay(t().questions[step]);
+  }
+
+  async function startConversation(){
+    phase = "intro";
+    setBusy(true);
+    await botSay(t().intro);
+    phase = "asking";
+    step = 0;
+    await askCurrentQuestion();
+    setBusy(false);
+    inputEl.focus();
+  }
+
+  function buildResultCard(){
+    const ranked = CATS.slice().sort((a, b) => scores[b] - scores[a]);
+    const maxScore = scores[ranked[0]];
+    let primary, secondary;
+    if (maxScore === 0) {
+      const shuffled = CATS.slice().sort(() => Math.random() - 0.5);
+      primary = shuffled[0];
+      secondary = shuffled[1];
+    } else {
+      primary = ranked[0];
+      secondary = ranked.find((c) => c !== primary && scores[c] > 0) || ranked[1];
+    }
+
+    const lang = t();
+    const wrap = document.createElement("div");
+    wrap.className = "msg bot";
+
+    const card = document.createElement("div");
+    card.className = "result-card";
+
+    const main = lang.suggestions[primary][0];
+    const mainAlt = lang.suggestions[primary][1];
+    const also = lang.suggestions[secondary];
+
+    card.innerHTML =
+      '<div class="stamp">' + lang.stampText + '</div>' +
+      '<p class="call-number">' + lang.callNumberPrefix + (100 + Math.floor(Math.random() * 800)) + '</p>' +
+      '<h2 class="hobby-name">' + lang.categoryNames[primary] + '</h2>' +
+      '<p class="hobby-desc"><b>' + main.name + '.</b> ' + main.desc + '</p>' +
+      '<p class="hobby-desc"><b>' + mainAlt.name + '.</b> ' + mainAlt.desc + '</p>' +
+      '<p class="also-title">' + lang.alsoTitle + ' — ' + lang.categoryNames[secondary] + '</p>' +
+      '<div class="also-list">' +
+      also.map((h) => '<div class="also-item"><b>' + h.name + '</b>' + h.desc + '</div>').join("") +
+      '</div>';
+
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  async function showSummary(){
+    const maxScore = Math.max.apply(null, CATS.map((c) => scores[c]));
+    const introText = maxScore === 0 ? t().resultIntroFallback : t().resultIntro;
+    await botSay(introText);
+    const card = buildResultCard();
+    logEl.appendChild(card);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function handleUserMessage(rawText){
+    const text = rawText.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    addMessage(text, "user");
+    inputEl.value = "";
+
+    const hits = scanKeywords(text);
+    CATS.forEach((c) => { scores[c] += hits[c]; });
+    const top = topCategory(hits);
+    const ack = top ? t().ackByCategory[top] : randomFrom(t().ackFallback);
+    await botSay(ack);
+
+    if (phase === "asking") {
+      step += 1;
+      if (step < t().questions.length) {
+        await askCurrentQuestion();
+      } else {
+        phase = "summary";
+        updateProgress();
+        await showSummary();
+        phase = "freechat";
+        document.getElementById("t-hint").textContent = t().hint;
+      }
+    }
+
+    setBusy(false);
+    inputEl.focus();
+  }
+
+  function resetAll(){
+    logEl.innerHTML = "";
+    CATS.forEach((c) => { scores[c] = 0; });
+    step = 0;
+    phase = "intro";
+    document.getElementById("t-tagright").textContent = "№ " + (10 + Math.floor(Math.random() * 900));
+    startConversation();
+  }
+
+  /* =====================================================================
+     EVENTS
+     ===================================================================== */
+  formEl.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleUserMessage(inputEl.value);
+  });
+
+  restartBtn.addEventListener("click", resetAll);
+
+  globeBtn.addEventListener("click", () => {
+    const open = !langMenu.classList.contains("hidden");
+    langMenu.classList.toggle("hidden", open);
+    globeBtn.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".lang-switch")) {
+      langMenu.classList.add("hidden");
+      globeBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  langMenu.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const lang = btn.dataset.lang;
+      langMenu.classList.add("hidden");
+      globeBtn.setAttribute("aria-expanded", "false");
+      if (lang === currentLang) return;
+      currentLang = lang;
+      applyStaticTexts();
+      if (busy) return;
+      setBusy(true);
+      await botSay(t().switchMsg);
+      if (phase === "asking") {
+        await askCurrentQuestion();
+      }
+      setBusy(false);
+      inputEl.focus();
+    });
+  });
+
+  /* =====================================================================
+     INIT
+     ===================================================================== */
+  applyStaticTexts();
+  startConversation();
+})();
+</script>
+</body>
+</html>
